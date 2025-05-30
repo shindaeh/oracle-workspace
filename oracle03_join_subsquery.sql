@@ -772,4 +772,107 @@ WHERE NOT EXISTS (SELECT employee_id
                   WHERE m.manager_id = e.employee_id)
 ORDER BY employee_id;
 
+/*=============================
+ 그룹함수(Group Function)
+ ROLLUP( )함수 , CUBE()함수,  GROUPING()함수,  GROUPING SETS()함수 
+ ================================*/
+
+SELECT department_id, job_id, count(*)
+ FROM employees
+ GROUP BY department_id, job_id
+ ORDER BY department_id, job_id;
+
+ROLLUP(department_id, job_id )
+20	MK_MAN	1    --그룹
+20	MK_REP	1    --그룹
+20		    2    --소계
+        	107  --총계
+ ---------------------------------*/    
+ SELECT department_id, count(*)
+ FROM employees
+  -- 롤업 1개 department_id 총개( count(*) )
+ GROUP BY rollup(department_id)
+ ORDER BY department_id; 
+
+
+ SELECT department_id, job_id, count(*)
+ FROM employees
+ -- 롤업 2개 job_id로 총개( count(*) )
+ -- 결과값 제일 아래에는 전체 총개
+ GROUP BY rollup(department_id, job_id)
+ ORDER BY department_id, job_id;
+
+-- 롤업에 ()가 2개로 감싸진것은 소계X
+ SELECT department_id, job_id, count(*)
+ FROM employees
+ GROUP BY rollup((department_id, job_id))
+ ORDER BY department_id, job_id;
+ 
+  /*------------------------------------
+ GROUPING() 함수
+ GROUPING 함수는 ROLLUP, CUBE, GROUPING SETS 에서 생성되는 합계값을 구분하기 위해서 만들어진 함수이다.
+ 예를 들어 소계, 합계 등이 계산되면 GROUPING 함수는 1번을 반환하고 그렇지 않으면 0을 반환한다.
+
+ ---------------------------------------*/
+SELECT department_id,grouping(department_id), count(*)
+FROM employees
+GROUP BY rollup(department_id)
+ORDER BY department_id; 
+
+
+SELECT department_id,  
+               decode(GROUPING(department_id), 1, '전체합계', ' '),
+                job_id,
+                decode(GROUPING(job_id), 1, '부서합계', ' '),
+                sum(salary)
+FROM employees
+GROUP BY ROLLUP(department_id, job_id);
+
+/*-------------
+ GROUPING SETS()함수
+ GROUPING BY에 나오는 컬럼의 순서와 관계없이 다양한 소계를  만들 수 있다.
+ GROUPING BY에 나오는 컬럼의 순서와 관계없이 개별적으로 개별적으로 모두 처리한다.
+ 
+ GROUPING SETS(column1, column2)         
+             (column1)
+             (column2)
+             ( )
+
+GROUPING SETS(department_id, job_id )
+20		    2    --소계
+    MK_MAN  1    --소계
+    MK_REP  1    --소계
+    
+    
+  GROUPING SETS(column1, column2), GROUPING SETS(column3, column4)     
+             (column1,column3 )
+             (column1,column4 )
+             (column2,column3 )
+             (column2,column4 )
+             
+   GROUPING SETS(department_id), GROUPING SETS(job_id)
+          10	AD_ASST	1
+          20	MK_MAN	1
+          20	MK_REP	1
+ -------------------------------------------------------------*/
+
+
+SELECT department_id, job_id, count(*)
+ FROM employees
+ GROUP BY GROUPING SETS(department_id, job_id)
+ ORDER BY department_id, job_id;
+ 
+ --2개를 조합해서 따로따로 가능
+SELECT department_id, job_id, count(*)
+ FROM employees
+ GROUP BY GROUPING SETS(department_id),GROUPING SETS(job_id)
+ ORDER BY department_id, job_id;
+
+ SELECT case grouping(d.department_name) when 1 then 'ALL Departments' else d.department_name END AS "DNAME",
+        case grouping(e.job_id) when 1 then 'ALL jobs' else e.job_id END AS "JOB",
+        count(*) AS "Total Empl",
+        sum(e.salary) AS "Total Sal" 
+ FROM employees e, departments d
+ WHERE e.department_id = d.department_id
+ GROUP BY d.department_name, rollup(job_id);
 
